@@ -29,4 +29,4 @@ HEALTHCHECK CMD step ca health 2>/dev/null | grep "^ok" >/dev/null
 COPY docker/entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
-CMD exec /usr/local/bin/step-ca --password-file $PWDPATH $CONFIGPATH
+CMD /usr/local/bin/step-ca --password-file $PWDPATH $CONFIGPATH
