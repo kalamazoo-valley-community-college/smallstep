@@ -231,7 +231,7 @@ func tlsAlert(err error) uint8 {
 	if errors.As(err, &opErr) {
 		v := reflect.ValueOf(opErr.Err)
 		if v.Kind() == reflect.Uint8 {
-			return uint8(v.Uint()) //nolint:gosec // handled by checking its type
+			return cast.Uint8(v.Uint())
 		}
 	}
 	return 0
@@ -792,6 +792,9 @@ type attestationObject struct {
 
 // TODO(bweeks): move attestation verification to a shared package.
 func deviceAttest01Validate(ctx context.Context, ch *Challenge, db DB, jwk *jose.JSONWebKey, payload []byte) error {
+	// Update challenge with the payload
+	ch.Payload = payload
+
 	// Load authorization to store the key fingerprint.
 	az, err := db.GetAuthorization(ctx, ch.AuthorizationID)
 	if err != nil {
@@ -946,7 +949,6 @@ func deviceAttest01Validate(ctx context.Context, ch *Challenge, db DB, jwk *jose
 	ch.Status = StatusValid
 	ch.Error = nil
 	ch.ValidatedAt = clock.Now().Format(time.RFC3339)
-	ch.Payload = payload
 	ch.PayloadFormat = format
 
 	// Store the fingerprint in the authorization.
