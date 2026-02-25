@@ -1,0 +1,122 @@
+name: Build Binaries (kvcc)
+
+on:
+  push:
+    branches:
+      - kvcc
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }}/${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+          - os: darwin
+            arch: amd64
+            runner: macos-latest
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+    env:
+      BINARY: step-ca${{ matrix.os == 'windows' && '.exe' || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION=$(git describe --tags --always --dirty="-kvcc" | sed 's/^v//')
+          DATE=$(date -u '+%Y-%m-%d %H:%M UTC')
+          go build -v -trimpath \
+            -ldflags="-w -X 'main.Version=${VERSION}' -X 'main.BuildTime=${DATE}'" \
+            -o "${{ env.BINARY }}" \
+            github.com/smallstep/certificates/cmd/step-ca
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: step-ca-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ env.BINARY }}
+          retention-days: 14
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --always --dirty="-kvcc" | sed 's/^v//')
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "TAG=kvcc-${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Package binaries
+        run: |
+          mkdir -p release
+          for dir in artifacts/step-ca-*; do
+            name=$(basename "$dir")
+            # Determine extension based on platform
+            if [[ "$name" == *windows* ]]; then
+              zip -j "release/${name}.zip" "$dir"/*
+            else
+              tar -czf "release/${name}.tar.gz" -C "$dir" .
+            fi
+          done
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG }}
+          name: kvcc build ${{ steps.version.outputs.VERSION }}
+          body: |
+            Automated build from the `kvcc` branch.
+            Commit: ${{ github.sha }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
