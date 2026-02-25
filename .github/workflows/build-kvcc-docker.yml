@@ -3,7 +3,7 @@ name: Build & Push Docker (kvcc)
 on:
   push:
     branches:
-      - feat/docker-ci
+      - kvcc-release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
