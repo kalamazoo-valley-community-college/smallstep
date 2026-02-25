@@ -3,7 +3,7 @@ name: Build Binaries (kvcc)
 on:
   push:
     branches:
-      - kvcc
+      - kvcc-release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
