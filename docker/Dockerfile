@@ -1,4 +1,4 @@
-FROM golang:bookworm AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /src
 COPY . .
@@ -7,15 +7,15 @@ RUN apk add --no-cache curl git make libcap
 RUN make V=1 bin/step-ca
 RUN setcap CAP_NET_BIND_SERVICE=+eip bin/step-ca
 
-FROM smallstep/step-kms-plugin:cloud AS kms
+#FROM smallstep/step-kms-plugin:cloud AS kms
 
-FROM smallstep/step-cli:latest as cli
+#FROM smallstep/step-cli:latest as cli
 
-FROM python:bookworm
+FROM python:alpine
 
 COPY --from=builder /src/bin/step-ca /usr/local/bin/step-ca
-COPY --from=kms /usr/local/bin/step-kms-plugin /usr/local/bin/step-kms-plugin
-COPY --from=cli "/usr/local/bin/step" "/usr/local/bin/step"
+#COPY --from=kms /usr/local/bin/step-kms-plugin /usr/local/bin/step-kms-plugin
+#COPY --from=cli "/usr/local/bin/step" "/usr/local/bin/step"
 
 USER step
 
