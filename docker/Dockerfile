@@ -13,6 +13,8 @@ RUN setcap CAP_NET_BIND_SERVICE=+eip bin/step-ca
 
 FROM python:alpine
 
+RUN addgroup -S -g 1000 step && adduser -S -u 1000 step -G step
+
 COPY --from=builder /src/bin/step-ca /usr/local/bin/step-ca
 #COPY --from=kms /usr/local/bin/step-kms-plugin /usr/local/bin/step-kms-plugin
 #COPY --from=cli "/usr/local/bin/step" "/usr/local/bin/step"
