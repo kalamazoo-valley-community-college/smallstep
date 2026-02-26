@@ -46,7 +46,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=kvcc-latest
+            type=raw,value=latest
             type=raw,value=kvcc-${{ steps.version.outputs.VERSION }}
             type=raw,value=kvcc-${{ steps.version.outputs.SHORT_SHA }}
 
