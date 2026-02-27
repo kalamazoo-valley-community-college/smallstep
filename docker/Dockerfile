@@ -13,6 +13,7 @@ RUN setcap CAP_NET_BIND_SERVICE=+eip bin/step-ca
 
 FROM python:alpine
 
+RUN apk add --no-cache bash
 RUN addgroup -S -g 1000 step && adduser -S -u 1000 step -G step
 
 COPY --from=builder /src/bin/step-ca /usr/local/bin/step-ca
