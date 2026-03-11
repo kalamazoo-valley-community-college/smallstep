@@ -13,8 +13,10 @@ RUN setcap CAP_NET_BIND_SERVICE=+eip bin/step-ca
 
 FROM python:alpine
 
-RUN apk add --no-cache bash
-RUN addgroup -S -g 1000 step && adduser -S -u 1000 step -G step
+COPY docker/root.crt /usr/local/share/ca-certificates/root.crt
+RUN apk add --no-cache bash ca-certificates && \
+    update-ca-certificates && \
+    addgroup -S -g 1000 step && adduser -S -u 1000 step -G step
 
 COPY --from=builder /src/bin/step-ca /usr/local/bin/step-ca
 #COPY --from=kms /usr/local/bin/step-kms-plugin /usr/local/bin/step-kms-plugin
